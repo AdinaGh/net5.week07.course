@@ -9,44 +9,23 @@
     {
         private static void Main(string[] args)
         {
-            List<User> allUsers = ReadUsers("users.json");
-            List<Post> allPosts = ReadPosts("posts.json");
-
-            #region Demo
+            var allUsers = ReadUsers("users.json");
+            var allPosts = ReadPosts("posts.json");
 
             // 1 - find all users having email ending with ".net".
-            var users1 = from user in allUsers
-                         where user.Email.EndsWith(".net")
-                         select user;
+            var users1 = from u in allUsers
+                where u.Email.EndsWith(".net")
+                select u;
 
-            var users11 = allUsers.Where(user => user.Email.EndsWith(".net"));
+            var users2 = allUsers.Where(x => x.Email.EndsWith(".net"));
 
-            IEnumerable<string> userNames = from user in allUsers
-                                            select user.Name;
-
-            var userNames2 = allUsers.Select(user => user.Name);
-
-            foreach (var value in userNames2)
-            {
-                Console.WriteLine(value);
-            }
-
-            IEnumerable<Company> allCompanies = from user in allUsers
-                                                select user.Company;
-
-            var users2 = from user in allUsers
-                         orderby user.Email
-                         select user;
-
-            var netUser = allUsers.First(user => user.Email.Contains(".net"));
-            Console.WriteLine(netUser.Username);
-
-            #endregion
+            var emails = allUsers.Select(x => x.Email).ToList();
 
             // 2 - find all posts for users having email ending with ".net".
+
             IEnumerable<int> usersIdsWithDotNetMails = from user in allUsers
-                                                       where user.Email.EndsWith(".net")
-                                                       select user.Id;
+                                                      where user.Email.EndsWith(".net")
+                                                      select user.Id;
 
             IEnumerable<Post> posts = from post in allPosts
                                       where usersIdsWithDotNetMails.Contains(post.UserId)
@@ -56,35 +35,73 @@
             {
                 Console.WriteLine(post.Id + " " + "user: " + post.UserId);
             }
-
             // 3 - print number of posts for each user.
 
+            var nrPosts = from p in allPosts
+                          group p by p.UserId into grp
+                          select new { 
+                              UserId = grp.Key, 
+                              Count = grp.Count() 
+                          };
 
             // 4 - find all users that have lat and long negative.
 
+            var neg = from u in allUsers
+                      where u.Address?.Geo?.Lat < 0 && u.Address?.Geo?.Lng < 0
+                      select u;
 
             // 5 - find the post with longest body.
+
+            var bodyMax = allPosts.Max(p => p.Body);
 
 
             // 6 - print the name of the employee that have post with longest body.
 
+            var nameBody = (from p in allPosts
+                           join u in allUsers on p.UserId equals u.Id
+                           where p.Body == bodyMax
+                           select u.Name).FirstOrDefault();
+
+            Console.WriteLine(nameBody);
 
             // 7 - select all addresses in a new List<Address>. print the list.
 
+            var listaAddress = (from u in allUsers
+                              select u.Address).ToList();
+
+
+            listaAddress.ForEach(ad =>
+            {
+                Console.WriteLine($"{ ad.Street} {ad.Suite} {ad.City} {ad.Zipcode}");
+            });
 
             // 8 - print the user with min lat
 
+            var latMin = allUsers.Min(u => u.Address?.Geo?.Lat);
+
+            Console.WriteLine(latMin);
 
             // 9 - print the user with max long
+
+            var longMax = allUsers.Max(u => u.Address?.Geo?.Lng);
+
+            Console.WriteLine(longMax);
 
 
             // 10 - create a new class: public class UserPosts { public User User {get; set}; public List<Post> Posts {get; set} }
             //    - create a new list: List<UserPosts>
             //    - insert in this list each user with his posts only
 
-            // 11 - order users by zip code
+            var userPosts = allUsers.Select(u => new UserPosts { User = u, Posts = allPosts.Where(p => p.UserId == u.Id).ToList() }).ToList();
+
+            // 11 - order users by zip code 
+
+            var ordUser1 = allUsers.OrderBy(u => u.Address?.Zipcode);
+
 
             // 12 - order users by number of posts
+
+            var oderUser2 = allUsers.OrderBy(u => allPosts.Where(p => p.UserId == u.Id).Count());
         }
 
         private static List<Post> ReadPosts(string file)
